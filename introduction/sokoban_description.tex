@@ -1,0 +1,138 @@
+Формально вышесказанное записать следующим образом. Предметная область $\mathfrak{D}$ описывается парой множеств $\mathfrak{D}=(\mathbb{P},\mathbb{A})$, где $\mathbb{P}$ -- множество предикатов, выражающих свойства объектов и отношения между ними, $\mathbb{A}$   -- множество действий (операторов). Каждый оператор задается парой $a \in \mathbb{A}, a = (Pred, Effect), Pred \subset \mathbb{P}, Effect$ -- набор предикатов и их отрицаний. $Effect$ можно представить в виде $Effect = (Effect_+, Effect_-$), где $Effect_+$ и $Effect_-$ -- наборы, состоящие из положительных и отрицательных атомов соответственно, причем в $Effect_+ \cap \overline{Effect_-} \equiv \oslash$. Состояние системы $S \subset \mathbb{P}$ -- множество предикатов, которые считаются истинными в этом состоянии. Применение оператора $a$ в состоянии $S$ возможно тогда и только тогда, когда $Pred_a \subset S$. В результате применения оператора $a$ состоние $S$ переходит в состояние $S'$, которое получается из $S$ добавлением предикатов из $Effect_+$ и удалением предикатов из $Effect_-$. Целевое состояние $G \subset \mathbb{P}$. Задача планирования $\mathfrak{T}$ в предметной области $\mathfrak{D}$ представляется в виде пары $\mathfrak{T} = (I, G)$, где $I$ -- это начальное состояние системы, а $G$ -- целевое состояние.
+
+Рассмотрим пример игры Sokoban \textit{(пер. кладовщик)}, предложенный на IPC в 2008. Мир в данной игре представляет собой некоторую область, поделенную на клетки одинакового размера, которые бывают проходимыми и непроходимыми (фактически, это лабиринт). В некоторых клетках расположены предметы -- это могут быть камни, сундки, ключи и т.п. Другие клетки имеют пометки ""целевые"" -- углубления в полу для камней, замочные скважины для ключей (для люков в полу) и т.п. Количество целевых клеток и предметов совпадает. В игре есть игрок \textit{(player)}, который передвигается по клеткам лабиринта. В одной клетке не могут находиться игрок и предмет одновременно. Целью игрока является расположить все предметы по их целевым клеткам, причем не важно, в каком порядке и каким образом они будут расположены в целевых клетках. За один ход игрок может передвинуть предмет, находящийся в соседней клетке по направлению движения, в клетку за ней, если она свободна и проходима. Фрагмент описания предметной области игры Sokoban представлен ниже: 
+
+\linespread{0.80}    
+\begin{verbatim}
+  (define (domain sokoban-sequential)
+  (:requirements :typing :action-costs)
+  (:types thing location direction - object
+          player stone - thing)
+  (:predicates (clear ?l - location)
+	       (at ?t - thing ?l - location)
+	       (at-goal ?s - stone)
+	       (IS-GOAL ?l - location)
+	       (IS-NONGOAL ?l - location)
+           (MOVE-DIR ?from ?to - location ?dir - direction))
+  (:functions (total-cost) - number)
+
+  (:action move
+   :parameters (?p - player ?from ?to - location ?dir - direction)
+   :precondition (and (at ?p ?from)
+                      (clear ?to)
+                      (MOVE-DIR ?from ?to ?dir)
+                      )
+   :effect       (and (not (at ?p ?from))
+                      (not (clear ?to))
+                      (at ?p ?to)
+                      (clear ?from)
+                      )
+   )
+   
+   (:action push-to-nongoal
+   :parameters (?p - player ?s - stone
+                ?ppos ?from ?to - location
+                ?dir - direction)
+   :precondition (and (at ?p ?ppos)
+                      (at ?s ?from)
+                      (clear ?to)
+                      (MOVE-DIR ?ppos ?from ?dir)
+                      (MOVE-DIR ?from ?to ?dir)
+                      (IS-NONGOAL ?to)
+                      )
+   :effect       (and (not (at ?p ?ppos))
+                      (not (at ?s ?from))
+                      (not (clear ?to))
+                      (at ?p ?from)
+                      (at ?s ?to)
+                      (clear ?ppos)
+                      (not (at-goal ?s))
+                      (increase (total-cost) 1)
+                      )
+   )
+   <...>
+  )
+\end{verbatim}
+\linespread{1.25}
+
+    Во фрагменте определяется предметная область \texttt{sokoban-sequential}. В секции \texttt{:requirements} сообщается, что в описании используется типизация объектов и действия имеют некоторую стоимость применения. Далее определяется иерархия типов: 
+    \texttt{thing} (предмет, вещь), \texttt{location} (локация, клетка), \texttt{direction} (направление) -- представители базового в PDDL типа \texttt{object} (объект), а \texttt{player} (игрок) и \texttt{stone} (камень) -- представители уже определенного типа \texttt{thing}. 
+    В секции \texttt{:predicates} перечисляются предикаты:
+\begin{compactlist}
+    \item \texttt{clear}  -- свободна ли локация
+    \item \texttt{at}     -- находится ли предмет в указанной локации
+    \item \texttt{at-goal} -- находится ли камень в целевой локации
+    \item \texttt{IS-GOAL} -- является ли локация целевой
+    \item и т.д.
+\end{compactlist}
+    Далее описывается функция \texttt{total-cost}, возвращающая одно число -- суммарную стоимость всех примененных операций.
+    Затем описываются сами операции. Описание операции состоит из нескольких частей: указания имени,  секции с описанием параметров, секции с описанием предусловий и секции с описанием эффектов. Например, операция \texttt{move} имеет параметры \texttt{p} (игрок, который совершает передвжение), \texttt{from} и \texttt{to} -- локации, в которой он находится и в которую собирается переместиться соответственно, и направление движения \texttt{dir}. Для того, чтобы операцию можно было выполнить, игрок \texttt{p} должен находиться в локации \texttt{from}, локация \texttt{to}, в которую он хочет перейти, должна быть свободной и направление перемещения от \texttt{from} к \texttt{to} должно совпадать с \texttt{dir}.
+    
+    Описание задачи на языке PDDL для данной предметной области представлен ниже с вырезанными фрагментами, так как описание задачи требует описания всех объектов, оих отношений между собой со всеми деталями и т.д.:
+  
+\linespread{0.80}
+\begin{verbatim}
+;;   #######
+;; # #     #
+;; # # # # #
+;;   # @ $ #
+;; ### ### #
+;; #   ### #
+;; # $  ##.#
+;; ## $  #.#
+;;  ## $  .#
+;; # ## $#.#
+;; ## ## #.#
+;; ### #   #
+;; ### #####
+
+(define (problem p109-microban-sequential)
+  (:domain sokoban-sequential)
+  (:objects
+    dir-down - direction
+    dir-left - direction
+    dir-right - direction
+    dir-up - direction
+    player-01 - player
+    pos-01-01 - location
+    pos-01-02 - location
+    pos-01-03 - location
+    pos-01-04 - location    
+    <..>
+  (:init
+    (at player-01 pos-05-04)
+    (at stone-01 pos-07-04)
+    (at stone-02 pos-03-07)
+    <..>
+    (IS-GOAL pos-08-07)
+    (IS-GOAL pos-08-08)
+    (IS-GOAL pos-08-09)
+    (IS-GOAL pos-08-10)
+    (IS-GOAL pos-08-11)
+    (IS-NONGOAL pos-01-01)
+    (IS-NONGOAL pos-01-02)
+    (IS-NONGOAL pos-01-03)
+    (IS-NONGOAL pos-01-04)
+    <..>
+    (MOVE-DIR pos-01-01 pos-02-01 dir-right)
+    (MOVE-DIR pos-01-04 pos-02-04 dir-right)
+    (MOVE-DIR pos-02-01 pos-01-01 dir-left)
+    <..>
+    (clear pos-01-01)
+    (clear pos-01-04)
+    (clear pos-01-09)
+    (clear pos-02-01)
+    <..>
+  )
+  (:goal (and
+    (at-goal stone-01)
+    (at-goal stone-02)
+    (at-goal stone-03)
+    (at-goal stone-04)
+    (at-goal stone-05)
+  ))
+  (:metric minimize (total-cost))
+)    
+    
+\end{verbatim}
+\linespread{1.25}
