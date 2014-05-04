@@ -64,6 +64,8 @@ public class Pddl2Uml {
 	private Type UML_TYPE_BOOLEAN;
 	private UMLFactory FACTORY;
 	private Package rootPkg;
+	private pddl4j.exp.type.Type rootType;
+	private boolean rootTypeChecked;
 	private Domain domain;
 	private Map<RequireKey, Boolean> reqs;
 	
@@ -107,7 +109,7 @@ public class Pddl2Uml {
 			return;
 		}
 		System.out.println("Types will be extracted and created on fly");
-	
+		rootTypeChecked = false;
 	}
 	
 	private void transformPredicates(){
@@ -193,7 +195,10 @@ public class Pddl2Uml {
 		Class res = rootPkg.createOwnedClass(clName, false);
 		
 		for (pddl4j.exp.type.Type superType : type.getSuperTypes()){
-			if (superType.getImage().equals(pddl4j.exp.type.Type.OBJECT_SYMBOL)) continue;
+			if (superType.getImage().equals(pddl4j.exp.type.Type.OBJECT_SYMBOL)){
+				rootType = superType;
+				continue;
+			}
 			Class superClass = getClassByName(superType.getImage(), false);
 			if (superClass == null) {
 				System.out.println("Extracting type: " + type.getImage() + " --> " + superType.getImage());
@@ -211,7 +216,21 @@ public class Pddl2Uml {
 				subClass.createGeneralization(res);
 			}
 		}
+		
+		if (!rootTypeChecked){
+			checkRootType();
+		}
+		
 		return res;
+	}
+	
+	private void checkRootType(){
+		for (pddl4j.exp.type.Type subType: rootType.getAllSubTypes()){
+			if (getClassByName(subType.getImage()) == null ){
+				extractClassHierarchy(subType);
+			}
+		}
+		rootTypeChecked = true;
 	}
 	
 	private String getClassNameForString(String name){
