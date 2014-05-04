@@ -8,3 +8,8 @@
 *.aux
 *.gz
 *.log
+
+*.eps
+*.ps
+*.dvi
+*.pdf
