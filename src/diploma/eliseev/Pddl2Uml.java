@@ -216,21 +216,19 @@ public class Pddl2Uml {
 				subClass.createGeneralization(res);
 			}
 		}
-		
-		if (!rootTypeChecked){
-			checkRootType();
-		}
-		
+				
 		return res;
 	}
 	
 	private void checkRootType(){
+		rootTypeChecked = true;
+		System.out.println("Performing root type check...");
 		for (pddl4j.exp.type.Type subType: rootType.getAllSubTypes()){
 			if (getClassByName(subType.getImage()) == null ){
 				extractClassHierarchy(subType);
 			}
 		}
-		rootTypeChecked = true;
+		
 	}
 	
 	private String getClassNameForString(String name){
@@ -243,8 +241,13 @@ public class Pddl2Uml {
 		Class res = getClassByName(clName, false);
 		
 		if (res != null) return res;
+		res = extractClassHierarchy(type);
 		
-		return extractClassHierarchy(type);	
+		if (!rootTypeChecked && rootType != null){
+			checkRootType();
+		}
+				
+		return res;	
 	}
 	
 	private Class getClassByName(String clName, boolean create) {
