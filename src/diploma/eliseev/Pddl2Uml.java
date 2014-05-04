@@ -8,12 +8,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.naming.event.ObjectChangeListener;
-
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -22,12 +16,11 @@ import org.eclipse.uml2.uml.Association;
 import org.eclipse.uml2.uml.Constraint;
 import org.eclipse.uml2.uml.LiteralString;
 import org.eclipse.uml2.uml.Model;
+import org.eclipse.uml2.uml.NamedElement;
 import org.eclipse.uml2.uml.Operation;
 import org.eclipse.uml2.uml.Type;
 import org.eclipse.uml2.uml.UMLFactory;
 import org.eclipse.uml2.uml.UMLPackage;
-import org.eclipse.uml2.uml.ValueSpecification;
-import org.eclipse.uml2.uml.internal.impl.LiteralStringImpl;
 import org.eclipse.uml2.uml.resource.UMLResource;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Class;
@@ -38,7 +31,6 @@ import pddl4j.RequireKey;
 import pddl4j.exp.AtomicFormula;
 import pddl4j.exp.action.ActionDef;
 import pddl4j.exp.term.Term;
-import pddl4j.exp.term.Variable;
 
 public class Pddl2Uml {
 
@@ -97,28 +89,30 @@ public class Pddl2Uml {
 		FACTORY = UMLFactory.eINSTANCE;
 	}
 	
-	private Map<RequireKey, Boolean> getDomainRequirements(Domain domain){
-		Map<RequireKey, Boolean> res = new HashMap<>();
+	private void getDomainRequirements(){
+		reqs = new HashMap<>();
+		for (RequireKey req: RequireKey.values()){
+			reqs.put(req, false);
+		}
 		for (Iterator<RequireKey> reqIter = domain.requirementsIterator(); reqIter.hasNext();){
 			RequireKey req = reqIter.next();
-			res.put(req, true);
-		}
-		return res;		
+			reqs.put(req, true);
+		} 		
 	}
 	
-	private Package transformDomain(){
+	private void transformTypes(){
+		if (!reqs.get(RequireKey.TYPING)){
+			System.out.println("Typing not supported by domain!");
+			return;
+		}
+	
+	}
+	
+	private void transformPredicates(){
+		System.out.println("Processing predicates...");
 		
-		String domain_name = domain.getDomainName();
-		rootPkg.setName(domain_name);
-		
-		reqs = getDomainRequirements(domain);
-		
-		
-		
-		if (!typing){
-			System.out.println("Typing not supported by domain");
-			System.out.println("Processing predicates...");
-			Class object = root.createOwnedClass("Object", false);
+		if (!reqs.get(RequireKey.TYPING)){
+			Class object = rootPkg.createOwnedClass("Object", false);
 			for (Iterator<AtomicFormula> predIter = domain.predicatesIterator(); predIter.hasNext();){
 				AtomicFormula pred = predIter.next();
 				System.out.print(pred.getPredicate() + "(" + pred.getArity() + ")" + " -> ");
@@ -134,24 +128,21 @@ public class Pddl2Uml {
 											 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
 					
 					assoc.setName(pred.getPredicate());
-
+	
 				} break;
 				default:{
 					System.out.println("not supported");
 				}
 				}
 				
-				
-				//object.createOwnedOperation(pred.getPredicate(), ownedParameterNames, ownedParameterTypes)
-				/*
-				for (Iterator<Term> termIter = pred.iterator(); termIter.hasNext();){
-					Term term = termIter.next();
-					System.out.println(term.toString() + "..." + term.toTypedString());
-					
-				}*/
 			}
-			
-			System.out.println("Processing actions...");
+		}
+	}
+	
+	private void transformActions(){
+		System.out.println("Processing actions...");
+		if (!reqs.get(RequireKey.TYPING)){
+			Class object = getClassByName("Object");
 			
 			for (Iterator<ActionDef> actIter = domain.actionsIterator(); actIter.hasNext();){
 				ActionDef act = actIter.next();
@@ -173,8 +164,26 @@ public class Pddl2Uml {
 				
 			}
 		}
+	}
+	
+	private Class getClassByName(String clName) {
+		NamedElement res = rootPkg.getMember(clName);
+		if (res instanceof Class) return (Class) res; 
+		return null;
+	}
+
+	private void transformDomain(){
 		
-		return root;
+		String domain_name = domain.getDomainName();
+		rootPkg.setName(domain_name);
+		
+		getDomainRequirements();
+		
+		
+		transformTypes();
+		transformPredicates();
+		transformActions();
+		
 	}
 	
 	public int run(File domain_file, List<File> problem_files){
@@ -194,7 +203,7 @@ public class Pddl2Uml {
 		rootPkg = FACTORY.createPackage();
 		rootPkg.createPackageImport(PRIMITIVE_TYPES);
 		
-		transformDomain(domain);
+		transformDomain();
 		
 		Resource domainUML = resSet.createResource(URI.createURI(domain.getDomainName()+".uml"));
 		domainUML.getContents().add(rootPkg);
