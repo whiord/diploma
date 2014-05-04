@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -105,39 +106,60 @@ public class Pddl2Uml {
 			System.out.println("Typing not supported by domain!");
 			return;
 		}
+		System.out.println("Types will be extracted and created on fly");
 	
 	}
 	
 	private void transformPredicates(){
 		System.out.println("Processing predicates...");
-		
-		if (!reqs.get(RequireKey.TYPING)){
-			Class object = rootPkg.createOwnedClass("Object", false);
-			for (Iterator<AtomicFormula> predIter = domain.predicatesIterator(); predIter.hasNext();){
-				AtomicFormula pred = predIter.next();
-				System.out.print(pred.getPredicate() + "(" + pred.getArity() + ")" + " -> ");
-				switch  (pred.getArity()){
-				case 1:{
-					System.out.println("boolean attribute");
-					object.createOwnedAttribute(pred.getPredicate(), UML_TYPE_BOOLEAN);
-					
-				} break;
-				case 2:{
-					System.out.println("association");				
-					Association assoc = object.createAssociation(false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1, object, 
-											 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
-					
-					assoc.setName(pred.getPredicate());
-	
-				} break;
-				default:{
-					System.out.println("not supported");
-				}
-				}
 				
+		for (Iterator<AtomicFormula> predIter = domain.predicatesIterator(); predIter.hasNext();){
+			AtomicFormula pred = predIter.next();
+			System.out.print(pred.getPredicate() + "(" + pred.getArity() + ")" + " -> ");
+			if (pred.getArity() == 0) {
+				System.out.println("unknown");
+				continue;
 			}
+			
+			switch  (pred.getArity()){
+			case 1:{
+				System.out.println("boolean attribute");
+				
+				Term firstTerm = pred.iterator().next();
+				pddl4j.exp.type.Type firstType = firstTerm.getTypeSet().iterator().next();
+				Class predOwner = getClassForType(firstType);
+				 
+				
+				predOwner.createOwnedAttribute(pred.getPredicate(), UML_TYPE_BOOLEAN);
+				
+			} break;
+			case 2:{
+				System.out.println("association");
+				
+				Iterator<Term> termIter = pred.iterator();
+				Term firstTerm = termIter.next(),
+					 secondTerm = termIter.next();
+				
+				pddl4j.exp.type.Type firstType = firstTerm.getTypeSet().iterator().next(),
+						             secondType = secondTerm.getTypeSet().iterator().next();
+				
+				Class predOwner = getClassForType(firstType),
+					  otherEnd = getClassForType(secondType);
+					
+				Association assoc = predOwner.createAssociation(false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1, otherEnd, 
+										 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
+				
+				assoc.setName(pred.getPredicate());
+
+			} break;
+			default:{
+				System.out.println("n-ary association not supported");
+			}
+			}
+			
 		}
 	}
+
 	
 	private void transformActions(){
 		System.out.println("Processing actions...");
@@ -166,10 +188,58 @@ public class Pddl2Uml {
 		}
 	}
 	
-	private Class getClassByName(String clName) {
-		NamedElement res = rootPkg.getMember(clName);
-		if (res instanceof Class) return (Class) res; 
+	private Class extractClassHierarchy(pddl4j.exp.type.Type type){
+		String clName = getClassNameForString(type.getImage());
+		Class res = rootPkg.createOwnedClass(clName, false);
+		
+		for (pddl4j.exp.type.Type superType : type.getSuperTypes()){
+			if (superType.getImage().equals(pddl4j.exp.type.Type.OBJECT_SYMBOL)) continue;
+			Class superClass = getClassByName(superType.getImage(), false);
+			if (superClass == null) {
+				System.out.println("Extracting type: " + type.getImage() + " --> " + superType.getImage());
+				superClass = extractClassHierarchy(superType);
+				res.createGeneralization(superClass);
+			}
+			
+		}
+		
+		for (pddl4j.exp.type.Type subType : type.getSubTypes()){
+			Class subClass = getClassByName(subType.getImage(), false);
+			if (subClass == null){
+				System.out.println("Extracting type: " + type.getImage() + " <-- " + subType.getImage());
+				subClass = extractClassHierarchy(subType);
+				subClass.createGeneralization(res);
+			}
+		}
+		return res;
+	}
+	
+	private String getClassNameForString(String name){
+		return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+	}
+	
+	private Class getClassForType(pddl4j.exp.type.Type type){
+		String clName = getClassNameForString(type.getImage());
+		
+		Class res = getClassByName(clName, false);
+		
+		if (res != null) return res;
+		
+		return extractClassHierarchy(type);	
+	}
+	
+	private Class getClassByName(String clName, boolean create) {
+		clName = getClassNameForString(clName);
+		EList<NamedElement> list = rootPkg.getMembers();
+		for (NamedElement elem : list){
+			if (elem.getName().equals(clName) && elem instanceof Class) return (Class) elem; 
+		}
+		if (create) return rootPkg.createOwnedClass(clName, false);
 		return null;
+	}
+	
+	private Class getClassByName(String clName){
+		return getClassByName(clName, false);
 	}
 
 	private void transformDomain(){
