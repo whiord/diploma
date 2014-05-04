@@ -117,7 +117,8 @@ public class Pddl2Uml {
 				
 		for (Iterator<AtomicFormula> predIter = domain.predicatesIterator(); predIter.hasNext();){
 			AtomicFormula pred = predIter.next();
-			System.out.print(pred.getPredicate() + "(" + pred.getArity() + ")" + " -> ");
+			String predInfoString = pred.getPredicate() + "(" + pred.getArity() + ")" + " -> "; 
+			
 			if (pred.getArity() == 0) {
 				System.out.println("unknown");
 				continue;
@@ -125,34 +126,45 @@ public class Pddl2Uml {
 			
 			switch  (pred.getArity()){
 			case 1:{
-				System.out.println("boolean attribute");
 				
 				Term firstTerm = pred.iterator().next();
 				pddl4j.exp.type.Type firstType = firstTerm.getTypeSet().iterator().next();
 				Class predOwner = getClassForType(firstType);
-				 
+				
+				System.out.println(predInfoString + "boolean attribute of " + predOwner.getName());
 				
 				predOwner.createOwnedAttribute(pred.getPredicate(), UML_TYPE_BOOLEAN);
 				
 			} break;
-			case 2:{
-				System.out.println("association");
-				
+			case 2:{				
 				Iterator<Term> termIter = pred.iterator();
 				Term firstTerm = termIter.next(),
 					 secondTerm = termIter.next();
 				
-				pddl4j.exp.type.Type firstType = firstTerm.getTypeSet().iterator().next(),
-						             secondType = secondTerm.getTypeSet().iterator().next();
+				List <Class> assocOwners = new LinkedList<>();
+								
+				for (pddl4j.exp.type.Type firstType : firstTerm.getTypeSet()){
+					for (pddl4j.exp.type.Type secondType : secondTerm.getTypeSet()){
+						Class assocOwner = getClassForType(firstType),
+							  otherEnd = getClassForType(secondType);
+						
+						Association assoc = assocOwner.createAssociation(false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1, otherEnd, 
+								 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
+		
+						assoc.setName(pred.getPredicate());
+						
+						assocOwners.add(assocOwner);
+						
+					}
+				}
 				
-				Class predOwner = getClassForType(firstType),
-					  otherEnd = getClassForType(secondType);
-					
-				Association assoc = predOwner.createAssociation(false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1, otherEnd, 
-										 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
 				
-				assoc.setName(pred.getPredicate());
-
+				System.out.print(predInfoString + "association of ");
+				for (Class assocOwner : assocOwners){
+					System.out.print(assocOwner.getName() + " ");
+				}
+				System.out.println();
+				
 			} break;
 			default:{
 				System.out.println("n-ary association not supported");
