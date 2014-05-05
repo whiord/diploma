@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -30,7 +31,9 @@ import pddl4j.Domain;
 import pddl4j.Parser;
 import pddl4j.RequireKey;
 import pddl4j.exp.AtomicFormula;
+import pddl4j.exp.action.Action;
 import pddl4j.exp.action.ActionDef;
+import pddl4j.exp.action.ActionID;
 import pddl4j.exp.term.Term;
 
 public class Pddl2Uml {
@@ -171,28 +174,45 @@ public class Pddl2Uml {
 	
 	private void transformActions(){
 		System.out.println("Processing actions...");
-		if (!reqs.get(RequireKey.TYPING)){
-			Class object = getClassByName("Object");
 			
-			for (Iterator<ActionDef> actIter = domain.actionsIterator(); actIter.hasNext();){
-				ActionDef act = actIter.next();
-				System.out.print(act.getName() + "(");
-				
-				Operation op = object.createOwnedOperation(act.getName(), null, null);
-				for (Iterator<Term> termIter =  act.iterator(); termIter.hasNext();){
-					Term term = termIter.next();
-					System.out.print(term.toString() + (termIter.hasNext()?", ":""));
-					op.createOwnedParameter(term.toString(), object);
-				}
-				System.out.println(")");
-				Constraint pre = op.createPrecondition(act.getName() + ".pre");
-				
-				LiteralString specPre = FACTORY.createLiteralString();
-				specPre.setValue("{OCL} " + act.toString());
-				pre.setSpecification(specPre);
-				//ValueSpecification preSpec = pre.createSpecification(null, UML_TYPE_BOOLEAN, );
-				
+		for (Iterator<ActionDef> actIter = domain.actionsIterator(); actIter.hasNext();){
+			ActionDef act = actIter.next();
+			if (act.getActionID() == ActionID.DURATIVE_ACTION){
+				System.out.println(act.getName() + " -> " + "durative action not supported");
 			}
+			
+			String actInfoString = act.getName() + "(";
+			
+			Iterator<Term> termIter =  act.iterator();
+			Term firstTerm = termIter.next();
+			
+			Class opOwner = getClassForType(firstTerm.getTypeSet().iterator().next());
+			Operation op = opOwner.createOwnedOperation(act.getName(), null, null);
+			
+			for (;termIter.hasNext();){
+				Term nextTerm = termIter.next();
+				Class nextArgClass = getClassForType(nextTerm.getTypeSet().iterator().next()); 
+				 
+				op.createOwnedParameter(nextTerm.toString(), nextArgClass);
+				
+				actInfoString += nextTerm.toString()+": "+nextArgClass.getName() + (termIter.hasNext()?", ":"");
+			}
+			
+			System.out.println(actInfoString + ") -> " + "operation of " + opOwner.getName());
+
+			Constraint pre = op.createPrecondition(act.getName() + ".precond"),
+			           post = op.createPostcondition(act.getName() + ".postcond");
+			
+			LiteralString specPre = FACTORY.createLiteralString(),
+					      specPost = FACTORY.createLiteralString();
+			
+			
+			Action actCl = (Action) act;
+			
+			specPre.setValue("{PDDL} " + actCl.getPrecondition().toString());
+			specPost.setValue("{PDDL}" + actCl.getEffect().toString());
+			pre.setSpecification(specPre);
+			post.setSpecification(specPost);
 		}
 	}
 	
@@ -312,6 +332,7 @@ public class Pddl2Uml {
 			System.out.println("Can't save model");
 			e.printStackTrace();
 		}
+		System.out.println("Model saved to \""+domainUML.getURI().toFileString()+"\"");
 		
 		return 0;
 	}
