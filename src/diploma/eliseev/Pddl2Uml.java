@@ -120,7 +120,7 @@ public class Pddl2Uml {
 			String predInfoString = pred.getPredicate() + "(" + pred.getArity() + ")" + " -> "; 
 			
 			if (pred.getArity() == 0) {
-				System.out.println("unknown");
+				System.out.println(predInfoString + "unknown");
 				continue;
 			}
 			
@@ -129,11 +129,11 @@ public class Pddl2Uml {
 				
 				Term firstTerm = pred.iterator().next();
 				pddl4j.exp.type.Type firstType = firstTerm.getTypeSet().iterator().next();
-				Class predOwner = getClassForType(firstType);
 				
-				System.out.println(predInfoString + "boolean attribute of " + predOwner.getName());
-				
+				Class predOwner = getClassForType(firstType);			
 				predOwner.createOwnedAttribute(pred.getPredicate(), UML_TYPE_BOOLEAN);
+				
+				predInfoString += "boolean attribute of " + predOwner.getName();
 				
 			} break;
 			case 2:{				
@@ -141,7 +141,7 @@ public class Pddl2Uml {
 				Term firstTerm = termIter.next(),
 					 secondTerm = termIter.next();
 				
-				List <Class> assocOwners = new LinkedList<>();
+				predInfoString += "association of ";
 								
 				for (pddl4j.exp.type.Type firstType : firstTerm.getTypeSet()){
 					for (pddl4j.exp.type.Type secondType : secondTerm.getTypeSet()){
@@ -153,24 +153,18 @@ public class Pddl2Uml {
 		
 						assoc.setName(pred.getPredicate());
 						
-						assocOwners.add(assocOwner);
-						
+						predInfoString += assocOwner.getName() + " ";
 					}
 				}
 				
 				
-				System.out.print(predInfoString + "association of ");
-				for (Class assocOwner : assocOwners){
-					System.out.print(assocOwner.getName() + " ");
-				}
-				System.out.println();
 				
 			} break;
 			default:{
-				System.out.println("n-ary association not supported");
+				predInfoString += "n-ary association not supported";
 			}
 			}
-			
+			System.out.println(predInfoString);
 		}
 	}
 
