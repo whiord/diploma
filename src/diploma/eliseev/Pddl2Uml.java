@@ -20,6 +20,7 @@ import org.eclipse.uml2.uml.LiteralString;
 import org.eclipse.uml2.uml.Model;
 import org.eclipse.uml2.uml.NamedElement;
 import org.eclipse.uml2.uml.Operation;
+import org.eclipse.uml2.uml.Property;
 import org.eclipse.uml2.uml.Type;
 import org.eclipse.uml2.uml.UMLFactory;
 import org.eclipse.uml2.uml.UMLPackage;
@@ -68,6 +69,8 @@ public class Pddl2Uml {
 	private UMLFactory FACTORY;
 	private Package rootPkg;
 	private pddl4j.exp.type.Type rootType;
+	private static final String GLOBAL_CLASS_NAME = "global";
+	private Class globalClass;
 	private boolean rootTypeChecked;
 	private Domain domain;
 	private Map<RequireKey, Boolean> reqs;
@@ -121,13 +124,18 @@ public class Pddl2Uml {
 		for (Iterator<AtomicFormula> predIter = domain.predicatesIterator(); predIter.hasNext();){
 			AtomicFormula pred = predIter.next();
 			String predInfoString = pred.getPredicate() + "(" + pred.getArity() + ")" + " -> "; 
-			
-			if (pred.getArity() == 0) {
-				System.out.println(predInfoString + "unknown");
-				continue;
-			}
-			
+						
 			switch  (pred.getArity()){
+			case 0:{
+				if (globalClass == null){
+					globalClass = getClassByName(GLOBAL_CLASS_NAME, true);
+					globalClass.setIsAbstract(true);
+					
+				}
+				Property prop = globalClass.createOwnedAttribute(pred.getPredicate(), UML_TYPE_BOOLEAN);
+				prop.setIsStatic(true);
+				predInfoString += "global attribute";
+			}
 			case 1:{
 				
 				Term firstTerm = pred.iterator().next();
@@ -184,10 +192,18 @@ public class Pddl2Uml {
 			String actInfoString = act.getName() + "(";
 			
 			Iterator<Term> termIter =  act.iterator();
-			Term firstTerm = termIter.next();
-			
-			Class opOwner = getClassForType(firstTerm.getTypeSet().iterator().next());
+			Class opOwner;
+			if (termIter.hasNext()){
+				Term firstTerm = termIter.next();
+				opOwner = getClassForType(firstTerm.getTypeSet().iterator().next());
+			}
+			else{
+				opOwner = globalClass;
+			}
 			Operation op = opOwner.createOwnedOperation(act.getName(), null, null);
+			if (opOwner == globalClass){
+				op.setIsStatic(true);
+			}
 			
 			for (;termIter.hasNext();){
 				Term nextTerm = termIter.next();
