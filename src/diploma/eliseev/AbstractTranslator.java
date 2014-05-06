@@ -3,12 +3,15 @@ package diploma.eliseev;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.uml2.uml.Class;
 import org.eclipse.uml2.uml.Model;
+import org.eclipse.uml2.uml.NamedElement;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Type;
 import org.eclipse.uml2.uml.UMLFactory;
@@ -19,7 +22,7 @@ import pddl4j.PDDLObject;
 
 public abstract class AbstractTranslator {
 	static final String LIBRARY_PATH = "libs/org.eclipse.uml2.uml.resources.jar";
-	static final String GLOBAL_CLASS_NAME = "global";
+	static final String GLOBAL_CLASS_NAME = "Global";
 	
 	static ResourceSet resSet;
 	static Model PRIMITIVE_TYPES;
@@ -49,8 +52,6 @@ public abstract class AbstractTranslator {
 	}
 	
 	Package rootPkg;
-	Class globalClass;
-	pddl4j.exp.type.Type rootType;
 	
 	public AbstractTranslator(){
 		rootPkg = FACTORY.createPackage();
@@ -59,6 +60,59 @@ public abstract class AbstractTranslator {
 	
 	public abstract Package translate(PDDLObject smth);
 	
+	public static String getClassNameForString(String name){
+		return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+	}
+	
+	static Class extractClassHierarchy(Package pkg, pddl4j.exp.type.Type type){
+		Set<pddl4j.exp.type.Type> types = type.getAllSuperTypes();
+		types.add(type);
+		types.addAll(type.getAllSubTypes());
+		Class res = getClassByName(pkg, type.getImage(), true);
+		
+		for (pddl4j.exp.type.Type subType : types){
+			Class subClass = getClassByName(pkg, subType.getImage(), true);
+			
+			for (pddl4j.exp.type.Type superType : subType.getSuperTypes()){
+				if (superType.getImage().equals(pddl4j.exp.type.Type.OBJECT_SYMBOL)){
+					continue;
+				}
+				
+				Class superClass = getClassByName(pkg, superType.getImage(), true);
+				subClass.createGeneralization(superClass);
+				
+				System.out.println("Generalization: " + superClass.getName() + "  <---  " + subClass.getName());
+			}
+		}
+		
+		return res;
+	}	
+	
+	public static Class getClassForType(Package pkg, pddl4j.exp.type.Type type){
+		String clName = getClassNameForString(type.getImage());
+		
+		Class res = getClassByName(pkg, clName, false);
+		
+		if (res != null) return res;
+		res = extractClassHierarchy(pkg, type);
+				
+		return res;	
+	}
+	
+	public static Class getClassByName(Package pkg, String clName, boolean create) {
+		clName = getClassNameForString(clName);
+		EList<NamedElement> list = pkg.getMembers();
+		for (NamedElement elem : list){
+			if (elem.getName().equals(clName) && elem instanceof Class) return (Class) elem; 
+		}
+		if (create) return pkg.createOwnedClass(clName, false);
+		return null;
+	}
+	
+	public static Class getClassByName(Package pkg, String clName){
+		return getClassByName(pkg, clName, false);
+	}
+		
 	public static void saveToFile(String fName, Package pkg) throws IOException{
 		Resource saveResource = resSet.createResource(URI.createURI(fName));
 		saveResource.getContents().add(pkg);
