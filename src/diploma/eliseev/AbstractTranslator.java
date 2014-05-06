@@ -25,10 +25,6 @@ public abstract class AbstractTranslator {
 	static Model PRIMITIVE_TYPES;
 	static Type UML_TYPE_BOOLEAN;
 	static UMLFactory FACTORY;
-
-	Package rootPkg;
-	Class globalClass;
-	pddl4j.exp.type.Type rootType;
 	
 	{
 		resSet = new org.eclipse.emf.ecore.resource.impl.ResourceSetImpl();
@@ -50,6 +46,15 @@ public abstract class AbstractTranslator {
 		PRIMITIVE_TYPES = (Model) primTypesRes.getContents().get(0);
 		UML_TYPE_BOOLEAN = PRIMITIVE_TYPES.getOwnedType("Boolean");
 		FACTORY = UMLFactory.eINSTANCE;
+	}
+	
+	Package rootPkg;
+	Class globalClass;
+	pddl4j.exp.type.Type rootType;
+	
+	public AbstractTranslator(){
+		rootPkg = FACTORY.createPackage();
+		rootPkg.createPackageImport(PRIMITIVE_TYPES);
 	}
 	
 	public abstract Package translate(PDDLObject smth);

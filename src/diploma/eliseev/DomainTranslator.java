@@ -249,7 +249,7 @@ public class DomainTranslator extends AbstractTranslator {
 	
 	@Override
 	public Package translate(PDDLObject smth) {
-		rootPkg = FACTORY.createPackage();
+		
 		rootPkg.setName(smth.getDomainName());
 		domain = smth;
 		
