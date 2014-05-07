@@ -66,6 +66,7 @@ public class Pddl2Uml {
 		ProblemTranslator probTranslator =  new ProblemTranslator(domPackage);
 		for (File problemFile : problemFiles){
 			PDDLObject problem;
+			System.out.println();
 			try {
 				System.out.println("Try to parse file: \"" + problemFile.getAbsolutePath() + "\"");
 				problem = pddlParser.parse(problemFile);

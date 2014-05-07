@@ -86,10 +86,10 @@ public class DomainTranslator extends AbstractTranslator {
 						Class assocOwner = getClassForType(rootPkg, firstType),
 							  otherEnd = getClassForType(rootPkg, secondType);
 						
-						Association assoc = assocOwner.createAssociation(false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1, otherEnd, 
-								 false, AggregationKind.NONE_LITERAL, "x", 0, -1);
+						Association assoc = otherEnd.createAssociation(false, AggregationKind.NONE_LITERAL,  "x", 0, -1, assocOwner, 
+								 false, AggregationKind.NONE_LITERAL, pred.getPredicate(), 0, -1);
 		
-						assoc.setName(pred.getPredicate());
+						assoc.setName(getAssociationName(pred.getPredicate(), assocOwner.getName(), otherEnd.getName()));
 						
 						predInfoString += assocOwner.getName() + " ";
 					}

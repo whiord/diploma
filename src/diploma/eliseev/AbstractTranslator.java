@@ -9,6 +9,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.uml2.uml.Association;
 import org.eclipse.uml2.uml.Class;
 import org.eclipse.uml2.uml.InstanceSpecification;
 import org.eclipse.uml2.uml.Model;
@@ -62,8 +63,32 @@ public abstract class AbstractTranslator {
 	
 	public abstract Package translate(PDDLObject smth);
 	
-	public static String getClassNameForString(String name){
+	public static String getClassName(String name){
 		return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+	}
+	
+	public static String getAssociationName(String name, String end1, String end2){
+		return name.toLowerCase();
+		//return name.toLowerCase() + "_" + end1.toLowerCase() + "_" + end2.toLowerCase();
+	}
+	
+	public static Association getAssociation(Package pkg, String name, Class end1, Class end2){
+		String assocName = getAssociationName(name, end1.getName(), end2.getName());
+
+		for (NamedElement elem : pkg.getMembers()){
+			if (elem.getName().equals(assocName) && elem instanceof Association){
+				Association assoc = (Association) elem;
+				EList<Property> propList = assoc.getOwnedEnds();
+				
+				if (propList.size() < 2) continue;
+				
+				if ( end1.conformsTo(propList.get(0).getType()) &&
+					 end2.conformsTo(propList.get(1).getType())){
+					return assoc;
+				}
+			}
+		}
+		return null;
 	}
 	
 	static Class extractClassHierarchy(Package pkg, pddl4j.exp.type.Type type){
@@ -91,7 +116,7 @@ public abstract class AbstractTranslator {
 	}	
 	
 	public static Class getClassForType(Package pkg, pddl4j.exp.type.Type type){
-		String clName = getClassNameForString(type.getImage());
+		String clName = getClassName(type.getImage());
 		
 		Class res = getClassByName(pkg, clName, false);
 		
@@ -102,7 +127,7 @@ public abstract class AbstractTranslator {
 	}
 	
 	public static Class getClassByName(Package pkg, String clName, boolean create) {
-		clName = getClassNameForString(clName);
+		clName = getClassName(clName);
 		EList<NamedElement> list = pkg.getMembers();
 		for (NamedElement elem : list){
 			if (elem.getName().equals(clName) && elem instanceof Class) return (Class) elem; 
@@ -115,16 +140,35 @@ public abstract class AbstractTranslator {
 		return getClassByName(pkg, clName, false);
 	}
 	
-	public static InstanceSpecification getInstSpecificationByName(Package pkg, String name, Class cl){
+	public static InstanceSpecification getClassInstSpecification(Package pkg, String name, Class cl){
 		for (NamedElement elem : pkg.getMembers()){
-			if (elem.getName().equals(name) && elem instanceof InstanceSpecification) 
-				return (InstanceSpecification) elem;
-			
+			if (elem.getName().equals(name) && elem instanceof InstanceSpecification){
+				InstanceSpecification spec = (InstanceSpecification) elem;
+				if (spec.getClassifier(cl.getName())== cl) return spec;
+			}			
 		}
 		if (cl != null){
 			InstanceSpecification res = FACTORY.createInstanceSpecification();
 			res.setName(name);
 			res.getClassifiers().add(cl);
+			pkg.getPackagedElements().add(res);
+			return res;
+		}
+		
+		return null;
+	}
+	
+	public static InstanceSpecification getAssocInstSpecification(Package pkg, String name, Association assoc){
+		for (NamedElement elem : pkg.getMembers()){
+			if (elem.getName().equals(name) && elem instanceof InstanceSpecification){
+				InstanceSpecification spec = (InstanceSpecification) elem;
+				if (spec.getClassifier(assoc.getName())== assoc) return spec;
+			}
+		}
+		if (assoc != null){
+			InstanceSpecification res = FACTORY.createInstanceSpecification();
+			res.setName(name);
+			res.getClassifiers().add(assoc);
 			pkg.getPackagedElements().add(res);
 			return res;
 		}

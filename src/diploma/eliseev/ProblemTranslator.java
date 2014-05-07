@@ -6,7 +6,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.uml2.uml.Association;
 import org.eclipse.uml2.uml.InstanceSpecification;
+import org.eclipse.uml2.uml.InstanceValue;
 import org.eclipse.uml2.uml.LiteralBoolean;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Class;
@@ -77,14 +79,14 @@ public class ProblemTranslator extends AbstractTranslator {
 					Class instClass;
 					
 					if (atFormula.getArity() == 0){
-						spec = getInstSpecificationByName(initPkg, GLOBAL_CLASS_NAME, getGlobalClass(domPkg));
+						spec = getClassInstSpecification(initPkg, GLOBAL_CLASS_NAME, getGlobalClass(domPkg));
 						instClass = getGlobalClass(domPkg);
 					}
 					else{
 						Term instTerm = atFormula.iterator().next();
 						Type instType = instTerm.getTypeSet().iterator().next();
 						instClass = getClassForType(domPkg, instType);
-						spec = getInstSpecificationByName(initPkg, instTerm.getImage(), instClass);
+						spec = getClassInstSpecification(initPkg, instTerm.getImage(), instClass);
 					}
 					
 					Property definingProperty = getClassPropertyByName(instClass, atFormula.getPredicate());
@@ -97,7 +99,43 @@ public class ProblemTranslator extends AbstractTranslator {
 					initElemInfo = spec.getName() + "." + definingProperty.getName() + " = true";
 				} break;
 				case 2: {
+					Iterator<Term> termIterator = atFormula.iterator();
+					Term firstTerm = termIterator.next(),
+						 secondTerm = termIterator.next();
+					Type firstType = firstTerm.getTypeSet().iterator().next(),
+						 secondType = secondTerm.getTypeSet().iterator().next();
+					Class firstClass = getClassForType(domPkg, firstType),
+						  secondClass = getClassForType(domPkg, secondType);
+					InstanceSpecification firstSpec = getClassInstSpecification(initPkg, firstTerm.getImage(), firstClass),
+							              secondSpec = getClassInstSpecification(initPkg, secondTerm.getImage(), secondClass),
+							              assocSpec;
+					Association relAssoc = getAssociation(domPkg, atFormula.getPredicate(), firstClass, secondClass);
 					
+					assocSpec = getAssocInstSpecification(initPkg, 
+							atFormula.getPredicate() + "_" + firstTerm.getImage() + "_" + secondTerm.getImage(), relAssoc);
+					
+					Slot slot1 = assocSpec.createSlot(),
+						 slot2 = assocSpec.createSlot();
+					
+					slot1.setDefiningFeature(relAssoc.getOwnedEnds().get(0));
+					slot2.setDefiningFeature(relAssoc.getOwnedEnds().get(1));
+					
+					InstanceValue value1 = FACTORY.createInstanceValue(),
+								  value2 = FACTORY.createInstanceValue();
+					
+					value1.setInstance(firstSpec);
+					value1.setType(firstClass);
+					value1.setName(firstClass.getName().toLowerCase());
+					
+					value2.setInstance(secondSpec);
+					value2.setType(secondClass);
+					value2.setName(secondClass.getName().toLowerCase());
+					
+					slot1.getValues().add(value1);
+					slot2.getValues().add(value2);
+					
+					initElemInfo = firstSpec.getName() + "  " + atFormula.getPredicate() + "  " + secondSpec.getName();
+				    //spec = getInstSpecificationByName(initPkg, name, cl)
 				} break;
 				default:
 					initElemInfo = "n-ary association not supported";
