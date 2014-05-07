@@ -10,9 +10,11 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.uml2.uml.Class;
+import org.eclipse.uml2.uml.InstanceSpecification;
 import org.eclipse.uml2.uml.Model;
 import org.eclipse.uml2.uml.NamedElement;
 import org.eclipse.uml2.uml.Package;
+import org.eclipse.uml2.uml.Property;
 import org.eclipse.uml2.uml.Type;
 import org.eclipse.uml2.uml.UMLFactory;
 import org.eclipse.uml2.uml.UMLPackage;
@@ -111,6 +113,32 @@ public abstract class AbstractTranslator {
 	
 	public static Class getClassByName(Package pkg, String clName){
 		return getClassByName(pkg, clName, false);
+	}
+	
+	public static InstanceSpecification getInstSpecificationByName(Package pkg, String name, Class cl){
+		for (NamedElement elem : pkg.getMembers()){
+			if (elem.getName().equals(name) && elem instanceof InstanceSpecification) 
+				return (InstanceSpecification) elem;
+			
+		}
+		if (cl != null){
+			InstanceSpecification res = FACTORY.createInstanceSpecification();
+			res.setName(name);
+			res.getClassifiers().add(cl);
+			pkg.getPackagedElements().add(res);
+			return res;
+		}
+		
+		return null;
+	}
+	
+	public static Property getClassPropertyByName(Class cl, String name){
+		for (Property prop: cl.getAllAttributes()){
+			if (prop.getName().equals(name)){
+				return prop;
+			}
+		}
+		return null;
 	}
 		
 	public static void saveToFile(String fName, Package pkg) throws IOException{
