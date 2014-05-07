@@ -62,7 +62,7 @@ public class DomainTranslator extends AbstractTranslator {
 				prop.setIsStatic(true);
 				
 				predInfoString += "global attribute";
-			}
+			} break;
 			case 1:{
 				
 				Term firstTerm = pred.iterator().next();
@@ -94,9 +94,6 @@ public class DomainTranslator extends AbstractTranslator {
 						predInfoString += assocOwner.getName() + " ";
 					}
 				}
-				
-				
-				
 			} break;
 			default:{
 				predInfoString += "n-ary association not supported";

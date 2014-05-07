@@ -7,13 +7,20 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.uml2.uml.InstanceSpecification;
+import org.eclipse.uml2.uml.LiteralBoolean;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Class;
+import org.eclipse.uml2.uml.Property;
+import org.eclipse.uml2.uml.Slot;
 
 import pddl4j.Domain;
 import pddl4j.PDDLObject;
 import pddl4j.Problem;
+import pddl4j.exp.AtomicFormula;
+import pddl4j.exp.ExpID;
+import pddl4j.exp.InitEl;
 import pddl4j.exp.term.Constant;
+import pddl4j.exp.term.Term;
 import pddl4j.exp.type.Type;
 
 public class ProblemTranslator extends AbstractTranslator {
@@ -29,7 +36,7 @@ public class ProblemTranslator extends AbstractTranslator {
 			Constant constant = constIter.next();
 			Type instType = constant.getTypeSet().iterator().next();
 			Class instClass = getClassForType(domPkg, instType);
-			
+
 			InstanceSpecification instSpec = FACTORY.createInstanceSpecification();
 			instSpec.setName(constant.getImage());
 			instSpec.getClassifiers().add(instClass);
@@ -51,12 +58,62 @@ public class ProblemTranslator extends AbstractTranslator {
 		}
 	}
 	
+	private Class getGlobalClass(Package pkg){
+		return getClassByName(pkg, GLOBAL_CLASS_NAME, false);
+	}
+	
+	private void translateInitialState() {
+		System.out.println("Processing initial state...");
+		Package initPkg = rootPkg.createNestedPackage("init");
+		
+		for ( InitEl initElement : problem.getInit()){
+			if (initElement.getExpID() == ExpID.ATOMIC_FORMULA){
+				AtomicFormula atFormula = (AtomicFormula) initElement;
+				String initElemInfo = "";
+				switch (atFormula.getArity()) {
+				case 0:
+				case 1:{
+					InstanceSpecification spec;
+					Class instClass;
+					
+					if (atFormula.getArity() == 0){
+						spec = getInstSpecificationByName(initPkg, GLOBAL_CLASS_NAME, getGlobalClass(domPkg));
+						instClass = getGlobalClass(domPkg);
+					}
+					else{
+						Term instTerm = atFormula.iterator().next();
+						Type instType = instTerm.getTypeSet().iterator().next();
+						instClass = getClassForType(domPkg, instType);
+						spec = getInstSpecificationByName(initPkg, instTerm.getImage(), instClass);
+					}
+					
+					Property definingProperty = getClassPropertyByName(instClass, atFormula.getPredicate());
+					Slot slot = spec.createSlot();
+					slot.setDefiningFeature(definingProperty);
+					LiteralBoolean value = FACTORY.createLiteralBoolean();
+					value.setValue(true);
+					slot.getValues().add(value);
+					
+					initElemInfo = spec.getName() + "." + definingProperty.getName() + " = true";
+				} break;
+				case 2: {
+					
+				} break;
+				default:
+					initElemInfo = "n-ary association not supported";
+				}
+				
+				System.out.println(initElemInfo);
+			}
+			
+		}
 		
 	}
 	
 	private void translateProblem(){
 		translateObjects();
 		
+		translateInitialState();
 	}
 
 	public ProblemTranslator(Package domainPackage){
