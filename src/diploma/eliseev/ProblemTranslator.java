@@ -11,17 +11,18 @@ import org.eclipse.uml2.uml.Constraint;
 import org.eclipse.uml2.uml.InstanceSpecification;
 import org.eclipse.uml2.uml.InstanceValue;
 import org.eclipse.uml2.uml.LiteralBoolean;
-import org.eclipse.uml2.uml.LiteralString;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Class;
 import org.eclipse.uml2.uml.Property;
 import org.eclipse.uml2.uml.Slot;
 
+import diploma.eliseev.expr.PDDLStateTranslator;
+import diploma.eliseev.expr.StateTranslator;
+import diploma.eliseev.expr.TranslationContext;
 import pddl4j.Domain;
 import pddl4j.PDDLObject;
 import pddl4j.Problem;
 import pddl4j.exp.AtomicFormula;
-import pddl4j.exp.Exp;
 import pddl4j.exp.ExpID;
 import pddl4j.exp.InitEl;
 import pddl4j.exp.term.Constant;
@@ -32,6 +33,7 @@ public class ProblemTranslator extends AbstractTranslator {
 	Package domPkg;
 	Domain domain;
 	Problem problem;
+	StateTranslator stateTranslator;
 	
 	private void translateObjects(){
 		System.out.println("Processing objects...");
@@ -151,17 +153,9 @@ public class ProblemTranslator extends AbstractTranslator {
 		
 	}
 	
-	static Constraint translateState(Exp expr){
-		Constraint constraint = FACTORY.createConstraint();
-		LiteralString litString = FACTORY.createLiteralString();
-		litString.setValue("{PDDL} " + expr.toString());
-		constraint.setSpecification(litString);
-		return constraint;
-	} 
-	
 	private void translateGoal(){
 		System.out.println("Translating goal expression...");
-		Constraint goal = translateState(problem.getGoal());
+		Constraint goal = stateTranslator.translateState(new TranslationContext(domain, problem, domPkg, rootPkg), problem.getGoal());
 		goal.setName("goal");
 		rootPkg.getPackagedElements().add(goal);
 	}
@@ -173,8 +167,12 @@ public class ProblemTranslator extends AbstractTranslator {
 		translateGoal();
 	}
 
-	public ProblemTranslator(Package domainPackage){
+	public ProblemTranslator(Package domainPackage, StateTranslator stateTranslator){
 		domPkg = domainPackage;
+		this.stateTranslator = stateTranslator;
+		if (stateTranslator == null){
+			stateTranslator = new PDDLStateTranslator();
+		}
 	}
 
 	@Override

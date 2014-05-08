@@ -28,9 +28,9 @@ public abstract class AbstractTranslator {
 	static final String GLOBAL_CLASS_NAME = "Global";
 	
 	static ResourceSet resSet;
-	static Model PRIMITIVE_TYPES;
-	static Type UML_TYPE_BOOLEAN;
-	static UMLFactory FACTORY;
+	public static Model PRIMITIVE_TYPES;
+	public static Type UML_TYPE_BOOLEAN;
+	public static UMLFactory FACTORY;
 	
 	{
 		resSet = new org.eclipse.emf.ecore.resource.impl.ResourceSetImpl();
