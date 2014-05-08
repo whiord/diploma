@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.uml2.uml.Association;
+import org.eclipse.uml2.uml.Constraint;
 import org.eclipse.uml2.uml.InstanceSpecification;
 import org.eclipse.uml2.uml.InstanceValue;
 import org.eclipse.uml2.uml.LiteralBoolean;
+import org.eclipse.uml2.uml.LiteralString;
 import org.eclipse.uml2.uml.Package;
 import org.eclipse.uml2.uml.Class;
 import org.eclipse.uml2.uml.Property;
@@ -19,6 +21,7 @@ import pddl4j.Domain;
 import pddl4j.PDDLObject;
 import pddl4j.Problem;
 import pddl4j.exp.AtomicFormula;
+import pddl4j.exp.Exp;
 import pddl4j.exp.ExpID;
 import pddl4j.exp.InitEl;
 import pddl4j.exp.term.Constant;
@@ -148,10 +151,26 @@ public class ProblemTranslator extends AbstractTranslator {
 		
 	}
 	
+	static Constraint translateState(Exp expr){
+		Constraint constraint = FACTORY.createConstraint();
+		LiteralString litString = FACTORY.createLiteralString();
+		litString.setValue("{PDDL} " + expr.toString());
+		constraint.setSpecification(litString);
+		return constraint;
+	} 
+	
+	private void translateGoal(){
+		System.out.println("Translating goal expression...");
+		Constraint goal = translateState(problem.getGoal());
+		goal.setName("goal");
+		rootPkg.getPackagedElements().add(goal);
+	}
+	
 	private void translateProblem(){
 		translateObjects();
 		
 		translateInitialState();
+		translateGoal();
 	}
 
 	public ProblemTranslator(Package domainPackage){
