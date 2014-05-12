@@ -10,9 +10,9 @@ import java.util.Map;
 
 import org.eclipse.uml2.uml.Package;
 
-import diploma.eliseev.expr.OCLStateTranslator;
-import diploma.eliseev.expr.PDDLStateTranslator;
-import diploma.eliseev.expr.StateTranslator;
+import diploma.eliseev.expr.OCLExprTranslator;
+import diploma.eliseev.expr.PDDLExprTranslator;
+import diploma.eliseev.expr.ExprTranslator;
 import pddl4j.PDDLObject;
 import pddl4j.Parser;
 
@@ -65,17 +65,17 @@ public class Pddl2Uml {
 	
 	Map<String, Object> options;
 	String rootDir;
-	StateTranslator stateTranslator;
+	ExprTranslator exprTranslator;
 	Boolean useComposition;
 	
 	public Pddl2Uml(Map<String, Object> options){
 		this.options = options;
 		if (options.containsKey("rootdir")) this.rootDir = (String) options.get("rootdir");
-		if (options.containsKey("ocl") && (Boolean) options.get("ocl") == true){
-			this.stateTranslator = new OCLStateTranslator();
+		if (options.containsKey("useocl") && (Boolean) options.get("useocl") == true){
+			this.exprTranslator = new OCLExprTranslator();
 		}
 		else {
-			this.stateTranslator = new PDDLStateTranslator();
+			this.exprTranslator = new PDDLExprTranslator();
 		}
 		if (options.containsKey("composition")){
 			this.useComposition = (Boolean) options.get("composition");
@@ -98,7 +98,7 @@ public class Pddl2Uml {
 			return -1;
 		}
 		
-		DomainTranslator domTranslator = new DomainTranslator();
+		DomainTranslator domTranslator = new DomainTranslator(exprTranslator);
 		Package domPackage = domTranslator.translate(domain);
 		
 		if (rootDir == null) rootDir = domain.getDomainName();
@@ -118,7 +118,7 @@ public class Pddl2Uml {
 			}
 		}
 		
-		ProblemTranslator probTranslator =  new ProblemTranslator(domPackage, stateTranslator);
+		ProblemTranslator probTranslator =  new ProblemTranslator(domPackage, exprTranslator);
 		for (File problemFile : problemFiles){
 			PDDLObject problem;
 			System.out.println();

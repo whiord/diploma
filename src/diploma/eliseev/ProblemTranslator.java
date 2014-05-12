@@ -16,8 +16,7 @@ import org.eclipse.uml2.uml.Class;
 import org.eclipse.uml2.uml.Property;
 import org.eclipse.uml2.uml.Slot;
 
-import diploma.eliseev.expr.PDDLStateTranslator;
-import diploma.eliseev.expr.StateTranslator;
+import diploma.eliseev.expr.ExprTranslator;
 import diploma.eliseev.expr.TranslationContext;
 import pddl4j.Domain;
 import pddl4j.PDDLObject;
@@ -33,7 +32,6 @@ public class ProblemTranslator extends AbstractTranslator {
 	Package domPkg;
 	Domain domain;
 	Problem problem;
-	StateTranslator stateTranslator;
 	
 	private void translateObjects(){
 		System.out.println("Processing objects...");
@@ -45,7 +43,7 @@ public class ProblemTranslator extends AbstractTranslator {
 			Class instClass = getClassForType(domPkg, instType);
 
 			InstanceSpecification instSpec = FACTORY.createInstanceSpecification();
-			instSpec.setName(constant.getImage());
+			instSpec.setName(extractPDDLName(constant.getImage()));
 			instSpec.getClassifiers().add(instClass);
 			
 			rootPkg.getPackagedElements().add(instSpec);
@@ -91,7 +89,7 @@ public class ProblemTranslator extends AbstractTranslator {
 						Term instTerm = atFormula.iterator().next();
 						Type instType = instTerm.getTypeSet().iterator().next();
 						instClass = getClassForType(domPkg, instType);
-						spec = getClassInstSpecification(initPkg, instTerm.getImage(), instClass);
+						spec = getClassInstSpecification(initPkg, extractPDDLName(instTerm.getImage()), instClass);
 					}
 					
 					Property definingProperty = getClassPropertyByName(instClass, atFormula.getPredicate());
@@ -111,13 +109,13 @@ public class ProblemTranslator extends AbstractTranslator {
 						 secondType = secondTerm.getTypeSet().iterator().next();
 					Class firstClass = getClassForType(domPkg, firstType),
 						  secondClass = getClassForType(domPkg, secondType);
-					InstanceSpecification firstSpec = getClassInstSpecification(initPkg, firstTerm.getImage(), firstClass),
-							              secondSpec = getClassInstSpecification(initPkg, secondTerm.getImage(), secondClass),
+					InstanceSpecification firstSpec = getClassInstSpecification(initPkg, extractPDDLName(firstTerm.getImage()), firstClass),
+							              secondSpec = getClassInstSpecification(initPkg, extractPDDLName(secondTerm.getImage()), secondClass),
 							              assocSpec;
 					Association relAssoc = getAssociation(domPkg, atFormula.getPredicate(), firstClass, secondClass);
 					
 					assocSpec = getAssocInstSpecification(initPkg, 
-							atFormula.getPredicate() + "_" + firstTerm.getImage() + "_" + secondTerm.getImage(), relAssoc);
+							atFormula.getPredicate() + "_" + firstSpec.getName() + "_" + secondSpec.getName(), relAssoc);
 					
 					Slot slot1 = assocSpec.createSlot(),
 						 slot2 = assocSpec.createSlot();
@@ -155,9 +153,10 @@ public class ProblemTranslator extends AbstractTranslator {
 	
 	private void translateGoal(){
 		System.out.println("Translating goal expression...");
-		Constraint goal = stateTranslator.translateState(new TranslationContext(domain, problem, domPkg, rootPkg), problem.getGoal());
-		goal.setName("goal");
+		Constraint goal = exprTranslator.translateExpr(new TranslationContext(domain, problem, domPkg, rootPkg), problem.getGoal());
 		rootPkg.getPackagedElements().add(goal);
+		goal.setName("goal");
+		goal.setContext(rootPkg);
 	}
 	
 	private void translateProblem(){
@@ -167,12 +166,9 @@ public class ProblemTranslator extends AbstractTranslator {
 		translateGoal();
 	}
 
-	public ProblemTranslator(Package domainPackage, StateTranslator stateTranslator){
+	public ProblemTranslator(Package domainPackage, ExprTranslator exprTranslator){
+		super(exprTranslator);
 		domPkg = domainPackage;
-		this.stateTranslator = stateTranslator;
-		if (stateTranslator == null){
-			stateTranslator = new PDDLStateTranslator();
-		}
 	}
 
 	@Override

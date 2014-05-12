@@ -21,11 +21,13 @@ import org.eclipse.uml2.uml.UMLFactory;
 import org.eclipse.uml2.uml.UMLPackage;
 import org.eclipse.uml2.uml.resource.UMLResource;
 
+import diploma.eliseev.expr.ExprTranslator;
+import diploma.eliseev.expr.PDDLExprTranslator;
 import pddl4j.PDDLObject;
 
 public abstract class AbstractTranslator {
 	static final String LIBRARY_PATH = "libs/org.eclipse.uml2.uml.resources.jar";
-	static final String GLOBAL_CLASS_NAME = "Global";
+	public static final String GLOBAL_CLASS_NAME = "Global";
 	
 	static ResourceSet resSet;
 	public static Model PRIMITIVE_TYPES;
@@ -55,10 +57,19 @@ public abstract class AbstractTranslator {
 	}
 	
 	Package rootPkg;
+	ExprTranslator exprTranslator;
 	
-	public AbstractTranslator(){
+	public AbstractTranslator(ExprTranslator exprTr){
 		rootPkg = FACTORY.createPackage();
 		rootPkg.createPackageImport(PRIMITIVE_TYPES);
+		exprTranslator = exprTr;
+		if (exprTranslator == null){
+			exprTranslator = new PDDLExprTranslator();
+		}
+	}
+	
+	public AbstractTranslator(){
+		this(null);
 	}
 	
 	public abstract Package translate(PDDLObject smth);
@@ -68,7 +79,7 @@ public abstract class AbstractTranslator {
 	}
 	
 	public static String getAssociationName(String name, String end1, String end2){
-		return name.toLowerCase();
+		return extractPDDLName(name.toLowerCase());
 		//return name.toLowerCase() + "_" + end1.toLowerCase() + "_" + end2.toLowerCase();
 	}
 	
@@ -138,6 +149,10 @@ public abstract class AbstractTranslator {
 	
 	public static Class getClassByName(Package pkg, String clName){
 		return getClassByName(pkg, clName, false);
+	}
+	
+	public static String extractPDDLName(String name){
+		return name.replaceAll("\\?", "").replaceAll("-", "_");
 	}
 	
 	public static InstanceSpecification getClassInstSpecification(Package pkg, String name, Class cl){
