@@ -18,3 +18,5 @@ libs/**
 *.ps
 *.dvi
 *.pdf
+*.fls
+*.*latexmk
