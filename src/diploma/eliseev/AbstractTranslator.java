@@ -166,6 +166,10 @@ public abstract class AbstractTranslator {
 			InstanceSpecification res = FACTORY.createInstanceSpecification();
 			res.setName(name);
 			res.getClassifiers().add(cl);
+			// Papyrus workaround
+			for (Class cl2 : cl.getSuperClasses()){
+				res.getClassifiers().add(cl2);
+			}
 			pkg.getPackagedElements().add(res);
 			return res;
 		}

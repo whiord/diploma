@@ -1,29 +1,47 @@
 \documentclass[a4paper,14pt]{extreport}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-%\usepackage{lmodern}
 \usepackage[english, russian]{babel}
+%\usepackage{lmodern}
+
 \usepackage{indentfirst}
 \usepackage{amssymb,amsfonts,amsmath,mathtext,cite,enumerate,float}
-\usepackage[dvips]{graphicx}
+\usepackage[pdftex]{graphicx}
+\graphicspath{{./images/}}
+\usepackage{wrapfig}
+
+\makeatletter
+\def\maxwidth#1{\ifdim\Gin@nat@width>#1 #1\else\Gin@nat@width\fi}
+\makeatother
+
 \usepackage{titlesec}
+
+\usepackage[framemethod=TikZ]{mdframed}
+\mdfdefinestyle{excode}{leftmargin=0cm, rightmargin=0cm,
+ innerleftmargin=1cm, innerrightmargin=1cm, roundcorner=5pt, innertopmargin=0.5cm, innerbottommargin=0.5cm, skipbelow=1cm}
+
+\usepackage{alltt}
 
 \usepackage{geometry}
 \usepackage{enumitem}
-\geometry{left=2cm}
-\geometry{right=2cm}
+\geometry{left=2.5cm}
+\geometry{right=1.5cm}
 \geometry{top=0.5cm}
 \geometry{bottom=2cm}
 
 \titleformat{\chapter}[block]{\LARGE\bfseries}{\thechapter}{20pt}{}{}
-%\addto\captionsrussian{\renewcommand{\chaptername}{}}
-%\renewcommand{\thechapter}{}
 
-\graphicspath{{./images/}}
+\usepackage{multirow}
+\usepackage{footnote}
+\usepackage{array} 
 
 % Title Page
-\title{Введение в дипломную работу}
+\title{Дипломная работа}
 \author{Елисеев Владислав}
+
+%\let\oldverbatim\verbatim
+%\def\verbatim{\ttfamily\oldverbatim}
+%\renewenvironment{verbatim}{\ttfamily\oldverbatim}{\oldverbatim\ttfamily}
 
 \makeatletter
 \bibliographystyle{unsrt}
@@ -48,20 +66,63 @@
     \end{list}
 }
 
+
+\newcommand{\translation}[5]{    
+\begin{figure}[h]
+    \hfill
+    \hfill
+    \hfill
+    \begin{minipage}[l]{0.40\linewidth}{\small
+#1   
+}
+    \end{minipage}
+    \hfil
+    \(\rightarrow\)
+    \hfill
+    \begin{minipage}[h]{0.45\linewidth}   
+        \centering
+        \includegraphics[width=\maxwidth{#2\linewidth},keepaspectratio]{#3}
+    \end{minipage}
+    \hfil
+    \caption{#4}\label{#5}
+\end{figure}
+}
+
+\usepackage{cprotect}
+\cMakeRobust{\translation}
+
+\newcounter{listing}[chapter]
+\newcommand{\listing}{\refstepcounter{listing} \textbf{Листинг \arabic{chapter}.\arabic{listing}.} }
+\renewcommand{\thelisting}{\arabic{chapter}.\arabic{listing}}
+\newcommand{\mycaption}[1]{{\begin{center} \parbox{0.8\linewidth}{#1} \end{center}}}
+
+\newcommand{\stype}[1]{<<\texttt{#1}>>}
+
+\usepackage[labelfont=bf]{caption}
+\usepackage{multicol}
+\usepackage{hhline}
+
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+
+\renewcommand{\appendixname}{Приложение}
+
 \begin{document}
 
 \include{titlepage}
 
-\newgeometry{top=2cm, bottom=2cm, left=2cm, right=2cm}
+\newgeometry{top=2cm, bottom=2cm, left=2.5cm, right=1.5cm}
 
 \setcounter{page}{2}
 \linespread{1}
 \normalsize
 
+\include{annotation}
+
+\newgeometry{top=0cm, bottom=2cm, left=2.5cm, right=1.5cm}
+
 \tableofcontents
 \newpage
-
-\include{annotation}
+\newgeometry{top=2cm, bottom=2cm, left=2.5cm, right=1.5cm}
 
 \include{intro}
 
@@ -70,6 +131,8 @@
 \include{exsolutions}
 
 \include{problemsolution}
+
+\include{practicepart}
 
 \include{conclusion}
 

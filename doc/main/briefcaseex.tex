@@ -1,0 +1,45 @@
+\begin{mdframed}[style=excode] 
+\begin{alltt} 
+;; определение предметной области
+(define (domain briefcase)
+
+  ;; используемые возможности, требования к планировщику  
+  (:requirements :strips :typing :conditional-effects
+                 :universal-preconditions)
+
+  ;; описание типов
+  (:types portable location - object)
+  
+  ;; описание предикатов
+  (:predicates (at ?y - portable ?x - location)
+               (in ?x - portable)
+               (is-at ?x - location))
+  
+  ;; описание действия move
+  (:action move
+      ;; описание параметров действия
+      :parameters (?m ?l - location)
+      
+      ;; описание предусловия действия
+      :precondition  (is-at ?m)
+
+      ;; описание эффекта действия
+      :effect (and (is-at ?l) (not (is-at ?m))
+                (forall (?x - portable) (when (in ?x)
+                (and (at ?x ?l) (not (at ?x ?m)))))))
+
+  ;; описания остальных действий
+  (:action take-out
+      :parameters (?x - portable)
+      :precondition (in ?x)
+      :effect (not (in ?x)))
+      
+  (:action put-in
+      :parameters (?x - portable ?l - location)
+      :precondition (and (not (in ?x)) (at ?x ?l) (is-at ?l))
+      :effect (in ?x))
+) 
+\end{alltt} 
+\end{mdframed}
+
+\mycaption{\listing Предметная область для задачи транспортировки портфеля \label{lst:briefcase}}

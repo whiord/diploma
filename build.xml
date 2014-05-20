@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     May, 2014                                                        
+
+     Pddl2Uml
+     PDDL to UML translator
+                   
+     whiord                                                             
+     ====================================================================== -->
+<project name="pddl2uml" default="default">
+    <description>
+            PDDL to UML translator
+    </description>
+
+    <!-- ================================= 
+          target: default              
+         ================================= -->
+    <target name="default" depends="build" description="default target">
+        
+    </target>
+
+    <target name="build">
+		<javac srcdir="src"
+         destdir="dst"
+         classpath="jarfile"
+         debug="on"
+		/>
+    </target>
+</project>

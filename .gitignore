@@ -20,3 +20,5 @@ libs/**
 *.pdf
 *.fls
 *.*latexmk
+*.cpt
+*.toc

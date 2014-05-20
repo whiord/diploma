@@ -1,0 +1,48 @@
+\begin{mdframed}[style=excode] 
+\footnotesize
+\begin{alltt} 
+;; определение предметной области
+(define (domain philosophers)
+    ;; используемые возможности, требования к планировщику
+    (:requirements :typing :negative-preconditions)
+
+    ;; описание типов
+    (:types
+      Philosopher - object
+      Fork - object
+    )
+
+    ;; описание предикатов
+    (:predicates
+      (right ?phi - Philosopher ?for - Fork)
+      (left ?phi - Philosopher ?for - Fork)
+      (hold ?phi - Philosopher ?for - Fork)
+      (hungry ?phi - Philosopher)
+      (hasLeft ?phi - Philosopher)
+      (eat ?phi - Philosopher)
+      (think ?phi - Philosopher)
+      (hasRight ?phi - Philosopher)
+    )
+
+    ;; описание действия getLeft (взять вилку слева)
+    (:action getLeft
+      ;; описание параметров действия
+      :parameters 
+        (?p1 - Philosopher ?p2 - Philosopher ?f - Fork)
+
+      ;; описание предусловия действия
+      :precondition 
+        (and (left ?p1 ?f) (right ?p2 ?f) 
+             (hungry ?p1) (not (hold ?p2 ?f)))
+      
+      ;; описание эффекта действия
+      :effect
+        (and (hasLeft ?p1) (hold ?p1 ?f) (not (hungry ?p1)))
+    )
+
+    ;; описания остальных действий
+    ;; ...
+) 
+\end{alltt} 
+\end{mdframed}
+\mycaption{\listing Предметная область для задачи обедающих философов \label{lst:philosopher}}
